@@ -10,11 +10,28 @@ function parseParameterPath(path: string, prefix: string) {
   return { Name: prefix + rawName, WithDecryption: Boolean(rawDecrypt) };
 }
 
+function getCredentials() {
+  const { credentials, region } = AWS.config;
+  const { accessKeyId, secretAccessKey } = credentials ?? new AWS.SharedIniFileCredentials();
+
+  if (!region) {
+    throw new Error('Missing AWS_REGION');
+  }
+
+  if (!accessKeyId) {
+    throw new Error('Missing AWS_ACCESS_KEY_ID');
+  }
+
+  if (!secretAccessKey) {
+    throw new Error('Missing AWS_SECRET_ACCESS_KEY');
+  }
+
+  return { accessKeyId, region, secretAccessKey };
+}
+
 function getParameterValue(prefix: string, path: string) {
   const { Name, WithDecryption } = parseParameterPath(path, prefix);
-
-  const { region } = AWS.config;
-  const { accessKeyId, secretAccessKey } = new AWS.SharedIniFileCredentials();
+  const { accessKeyId, region, secretAccessKey } = getCredentials();
 
   const headers = { 'Content-Type': 'application/x-amz-json-1.1', 'X-Amz-Target': 'AmazonSSM.GetParameter' };
   const { hostname, method, ...opts } = aws4.sign(
